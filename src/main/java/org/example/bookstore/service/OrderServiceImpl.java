@@ -1,13 +1,11 @@
 package org.example.bookstore.service;
 
 import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.exception.APIException;
+import org.example.bookstore.enums.OrderStatus;
 import org.example.bookstore.exception.AppException;
-import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.*;
 import org.example.bookstore.payload.OrderDTO;
 import org.example.bookstore.payload.OrderItemDTO;
-import org.example.bookstore.payload.UserDTO;
 import org.example.bookstore.payload.UserOrderDTO;
 import org.example.bookstore.repository.*;
 import org.example.bookstore.service.Interface.CartService;
@@ -129,7 +127,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderDTO> getOrdersByUser(UUID userId) {
+    public List<OrderDTO> getOrdersByUserId(UUID userId) {
 
         List<Order> orders = orderRepository.findAllByUserId(userId);
         if (orders.size() == 0) {
@@ -165,31 +163,41 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderDTO updateOrder(UUID orderId, String orderStatus) {
+    public OrderDTO updateOrder(UUID orderId, int orderStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setOrderStatus(Integer.parseInt(orderStatus));
+        order.setOrderStatus(orderStatus);
         return modelMapper.map(orderRepository.save(order), OrderDTO.class);
     }
 
     @Override
-    public String cancelOrder(UUID userId, UUID orderId) {
+    public String cancelOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-        if (order.getOrderStatus() == orderStatus.PROCESSING.ordinal() ) {
-            throw new APIException("This order cannot be canceled because it is already being processed or completed.");
+        if (order.getOrderStatus() != OrderStatus.WAIT_PAYMENT.getValue() ||
+                order.getOrderStatus() != OrderStatus.PAID.getValue()) {
+            throw new AppException(ErrorCode.ORDER_CANCELED_ERROR);
         }
 
-        order.setOrderStatus(orderStatus.CANCELED.ordinal());
+        order.setOrderStatus(OrderStatus.CANCELLED.getValue());
         orderRepository.save(order);
 
         List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
         for (OrderItem orderItem : orderItems) {
             Book book = orderItem.getBook();
             book.setStock(book.getStock() + orderItem.getQuantity());
-             bookRepository.save(book); // Cần thêm bookRepository
+             bookRepository.save(book);
         }
-        return "Order with id " + orderId + " has been canceled successfully.";
+        return "Order has been canceled successfully.";
+    }
+
+    @Override
+    public String confirmOrder(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        order.setOrderStatus(OrderStatus.PROCESSING.getValue());
+        orderRepository.save(order);
+        return "Confirm order successfully.";
     }
 }

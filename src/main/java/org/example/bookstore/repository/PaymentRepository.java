@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PaymentRepository extends JpaRepository<PaymentType,Integer> {
 
-    @Query("select pt from PaymentType pt where pt.paymentMethod = :paymentMethod")
+    @Query("select pt from PaymentType pt where pt.paymentMethod = ?1")
     PaymentType findByPaymentMethod(String paymentMethod);
 }

@@ -3,10 +3,13 @@ package org.example.bookstore.service;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.*;
+import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.CartDTO;
 import org.example.bookstore.payload.CartItemDTO;
 import org.example.bookstore.payload.UserDTO;
+import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.UserResponse;
+import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.RoleRepository;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.service.Interface.CartService;
@@ -18,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -39,39 +43,7 @@ public class UserServiceImpl implements UserService {
     private CartService cartService;
 
     @Autowired
-    private RoleRepository roleRepository;
-
-
-    private PasswordEncoder passwordEncoder;
-
-    @Override
-    public UserDTO registerUser(UserDTO userDTO) {
-        if (userRepository.findUserByEmail(userDTO.getEmail()).isPresent()) {
-            throw new AppException(ErrorCode.USER_WITH_EMAIL_EXISTED);
-        }
-        try {
-            User user = modelMapper.map(userDTO, User.class);
-
-            Cart cart = new Cart();
-            user.setCart(cart);
-
-            Role role = roleRepository.findByRoleName("USER");
-            if(role == null) {
-                throw new AppException(ErrorCode.ROLE_NOT_FOUND);
-            }
-            user.setRoles(Set.of(role));
-            User registeredUser = userRepository.save(user);
-
-            cart.setUser(registeredUser);
-
-            return modelMapper.map(registeredUser, UserDTO.class);
-        } catch (DataIntegrityViolationException e) {
-            throw new RuntimeException("DATA_INTEGRITY_VIOLATION");
-        } catch (Exception e) {
-            throw new RuntimeException("Error registering user", e);
-        }
-    }
-
+    private BookRepository bookRepository;
 
     @Override
     public UserResponse getAllUsers(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
@@ -99,7 +71,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO getUserById(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User with email not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
         CartDTO cart = modelMapper.map(user.getCart(), CartDTO.class);
@@ -109,25 +81,20 @@ public class UserServiceImpl implements UserService {
         userDTO.setCart(cart);
 
         userDTO.getCart().setCartItem(cartItemDTOS);
-
         return userDTO;
     }
 
     @Override
-    public UserDTO updateUser(UUID userId, UserDTO userDTO) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User with email not found"));
+    public UserDTO updateUser(UserUpdate userUpdate) {
+        User user = userRepository.findUserByUsername(userUpdate.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String encodedPass = passwordEncoder.encode(userDTO.getPassword());
-
-        user.setFirstName(userDTO.getFirstName());
-        user.setLastName(userDTO.getLastName());
-        user.setPhoneNumber(userDTO.getPhoneNumber());
-        user.setEmail(userDTO.getEmail());
-        user.setPassword(encodedPass);
-        user.setAddress(userDTO.getAddress());
-
-        userDTO = modelMapper.map(user, UserDTO.class);
+        user.setFirstName(userUpdate.getFirstName());
+        user.setLastName(userUpdate.getLastName());
+        user.setPhoneNumber(userUpdate.getPhoneNumber());
+        user.setAddress(userUpdate.getAddress());
+        userRepository.save(user);
+        UserDTO userDTO = modelMapper.map(user, UserDTO.class);
         CartDTO cart = modelMapper.map(user.getCart(), CartDTO.class);
         List<CartItemDTO> cartItemDTOS = user.getCart().getCartItems().stream()
                 .map(item -> modelMapper.map(item.getBook(), CartItemDTO.class)).collect(Collectors.toList());
@@ -139,7 +106,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public String deleteUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User with email not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         List<CartItem> cartItems = user.getCart().getCartItems();
         Cart cart = user.getCart();
@@ -152,16 +119,7 @@ public class UserServiceImpl implements UserService {
         });
 
         userRepository.delete(user);
-
         return "User with userId " + userId + " deleted successfully!!!";
-    }
-
-    @Override
-    public List<UserResponse> getAllUser() {
-        List<User> users = userRepository.findAll();
-        return users.stream()
-                .map(user -> modelMapper.map(user, UserResponse.class))
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -171,5 +129,58 @@ public class UserServiceImpl implements UserService {
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
         return userDTO;
     }
+
+    @Override
+    public String likedBooks(UUID userId, UUID bookId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+
+        Set<Book> likedBooks = user.getLikedBooks();
+
+        if (!likedBooks.contains(book)) {
+            likedBooks.add(book);
+            userRepository.save(user);
+            return "Like book successfully!!!";
+        }
+        return "Book already liked!";
+    }
+
+    @Override
+    public String removeLikedBooks(UUID userId, UUID bookId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+
+        Set<Book> likedBooks = user.getLikedBooks();
+
+        if (likedBooks.contains(book)) {
+            likedBooks.remove(book);
+            userRepository.save(user);
+            return "Dislike book successfully!!!";
+        }
+        return "Book was not liked before!";
+    }
+
+    @Override
+    public Set<BookDTO> listBooksLikedByUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        return user.getLikedBooks().stream()
+                .map(book -> modelMapper.map(book, BookDTO.class))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public UUID getCurrentUserId(Authentication authentication) {
+        String username = authentication.getName();
+        User user = userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return user.getId();
+    }
+
 
 }

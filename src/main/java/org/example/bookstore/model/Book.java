@@ -7,7 +7,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -63,12 +65,16 @@ public class Book {
     private Author author;
 
     @OneToMany(mappedBy = "book")
-    private List<RatingBook> ratingBooks;
+    private List<Review> reviews;
 
     @OneToMany(mappedBy = "book")
     private List<OrderItem> orderDetails;
 
+    @ManyToMany(mappedBy = "likedBooks")
+    private Set<User> likedByUsers = new HashSet<>();
 
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
 
 
 }

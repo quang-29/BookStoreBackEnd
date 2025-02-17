@@ -37,6 +37,13 @@ public enum ErrorCode {
     PAYMENT_METHOD_NOT_FOUND(722,"Payment method is not existed. Please enter proper payment method!",HttpStatus.BAD_REQUEST),
     ROLE_NOT_FOUND(723,"Role not found",HttpStatus.BAD_REQUEST),
     FILE_UPLOAD_ERROR(724,"Unable to upload image to s3 bucket",HttpStatus.BAD_REQUEST),
+    ORDER_CANCELED(725,"Order canceled",HttpStatus.BAD_REQUEST),
+    ORDER_CANCELED_ERROR(726,"This order cannot be canceled because it is already being processed or completed.",HttpStatus.BAD_REQUEST),
+    REVIEW_NOT_FOUND(727,"Review not found",HttpStatus.BAD_REQUEST),
+    UNAUTHORIZED_ACTION(728,"You have not permission to do this action",HttpStatus.BAD_REQUEST),
+    REVIEW_ALREADY_EXISTS(729,"You already reviewed the book",HttpStatus.BAD_REQUEST),
+    REVIEW_ERROR_DELETE(730,"You have not permission to delete the review",HttpStatus.BAD_REQUEST),
+
 
 
 

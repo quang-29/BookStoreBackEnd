@@ -14,11 +14,13 @@ public interface OrderService {
 
     OrderDTO getOrder(UUID orderId);
 
-    List<OrderDTO> getOrdersByUser(UUID userId);
+    List<OrderDTO> getOrdersByUserId(UUID userId);
 
     List<OrderDTO> getAllOrders();
 
-    OrderDTO updateOrder(UUID orderId, String orderStatus);
+    OrderDTO updateOrder(UUID orderId, int orderStatus);
 
-    String cancelOrder(UUID userId, UUID orderId);
+    String cancelOrder(UUID orderId);
+
+    String confirmOrder(UUID orderId);
 }

@@ -3,9 +3,7 @@ package org.example.bookstore.service;
 
 import jakarta.transaction.Transactional;
 import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.exception.APIException;
 import org.example.bookstore.exception.AppException;
-import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.Book;
 import org.example.bookstore.model.Cart;
 import org.example.bookstore.model.CartItem;

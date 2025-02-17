@@ -9,6 +9,6 @@ import java.util.UUID;
 @Repository
 public interface CartRepository extends JpaRepository<Cart, UUID> {
 
-    @Query("select c from Cart c where c.user.username = :userName")
+    @Query("select c from Cart c where c.user.username = ?1")
     Cart getCartByUserName(String userName);
 }

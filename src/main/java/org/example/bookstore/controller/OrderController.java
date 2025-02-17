@@ -41,7 +41,7 @@ public class OrderController {
     @GetMapping("getOrderByUserId/{userId}")
     @PreAuthorize("#userId.toString() == authentication.principal.id or hasRole('ADMIN')")
     public ResponseEntity<DataResponse> getOrderByUserId(@PathVariable UUID userId) {
-        List<OrderDTO> orderDTOList = orderService.getOrdersByUser(userId);
+        List<OrderDTO> orderDTOList = orderService.getOrdersByUserId(userId);
         DataResponse dataResponse = DataResponse.builder()
                 .data(orderDTOList)
                 .code(HttpStatus.OK.value())
@@ -63,5 +63,61 @@ public class OrderController {
                 .timestamp(LocalDateTime.now())
                 .build();
         return new ResponseEntity<>(dataResponse, HttpStatus.OK);
+    }
+
+    @GetMapping("/getAllOrders")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DataResponse> getAllOrders() {
+        List<OrderDTO> orderDTOList = orderService.getAllOrders();
+        DataResponse dataResponse = DataResponse.builder()
+                .code(HttpStatus.OK.value())
+                .message("Success")
+                .status(HttpStatus.OK)
+                .timestamp(LocalDateTime.now())
+                .data(orderDTOList)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    }
+
+    @PostMapping("/updateOrder")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DataResponse> updateOrder(@RequestParam UUID orderId,
+                                                    @RequestParam int orderStatus) {
+        OrderDTO orderDTO = orderService.updateOrder(orderId, orderStatus);
+        DataResponse dataResponse = DataResponse.builder()
+                .data(orderDTO)
+                .code(HttpStatus.OK.value())
+                .message("Success")
+                .status(HttpStatus.OK)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+
+    }
+    @PostMapping("/cancelOrder")
+    public ResponseEntity<DataResponse> cancelOrder(@RequestParam UUID orderId) {
+        String result = orderService.cancelOrder(orderId);
+        DataResponse dataResponse = DataResponse.builder()
+                .data(result)
+                .code(HttpStatus.OK.value())
+                .message("Success")
+                .status(HttpStatus.OK)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    }
+
+    @PostMapping("/confirmOrder")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DataResponse> confirmOrder(@RequestParam UUID orderId) {
+        String result = orderService.confirmOrder(orderId);
+        DataResponse dataResponse = DataResponse.builder()
+                .data(result)
+                .code(HttpStatus.OK.value())
+                .message("Success")
+                .status(HttpStatus.OK)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
     }
 }

@@ -48,34 +48,30 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public boolean register(RegisterRequest registerRequest) {
+
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
             throw new AppException(ErrorCode.USER_WITH_USERNAME_EXISTED);
         }
-        if(userRepository.existsByEmail(registerRequest.getEmail())){
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
             throw new AppException(ErrorCode.USER_WITH_EMAIL_EXISTED);
         }
         String hashPassword = passwordEncoder.encode(registerRequest.getPassword());
-        User user = new User();
         Cart cart = new Cart();
+        Role role = roleRepository.findByRoleName("USER")
+                .orElseGet(() -> roleRepository.save(new Role(null, "USER")));
+        User user = User.builder()
+                .email(registerRequest.getEmail())
+                .username(registerRequest.getUsername())
+                .password(hashPassword)
+                .roles(Set.of(role))
+                .cart(cart)
+                .build();
 
-
-        Role role = roleRepository.findByRoleName("USER");
-        if (role == null) {
-            Role newRole = new Role();
-            newRole.setRoleName("USER");
-            roleRepository.save(newRole);
-        }
-        user.setRoles(Set.of(role));
-
-
-        user.setEmail(registerRequest.getEmail());
-        user.setUsername(registerRequest.getUsername());
-        user.setPassword(hashPassword);
-        user.setCart(cart);
         User userSaved = userRepository.save(user);
         cart.setUser(userSaved);
-        return true;
+        return userSaved != null;
     }
+
 
     @Override
     public LogInResponse logIn(String email, String password) {

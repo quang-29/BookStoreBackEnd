@@ -44,7 +44,8 @@ public class SecurityConfig {
             "/api/cart/addBookToCart",
             "/api/cart/deleteBookFromCart",
             "api/order/placeOrder",
-            "/api/user/myInfo"
+            "/api/user/myInfo",
+            "/api/review/**"
     };
 
     @Autowired

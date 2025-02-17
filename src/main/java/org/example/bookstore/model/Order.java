@@ -65,7 +65,4 @@ public class Order {
 
     @Column(name = "status")
     private int orderStatus = 0;
-
-
-
 }
